@@ -1,0 +1,44 @@
+Interview technical tests
+
+Tests done via tmate session
+1. ssh <ctl node 01> 'rm -rf /usr/lib/python2.7/dist-packages/novaclient/client.py*' (make backup first)
+Ask student to create a compute node and assess how they work through problem
+
+2. ssh <ctl node 02) 'for i in $(find /usr/lib/python2.7/dist-packages/nova/ -name "*.py"); do echo -e "\nimport xyz\n" >> $i; done; stop nova-api'
+(make backup of nova directory first for quick restore)
+Ask candidate to debug what is wrong with nova-api
+
+3. ssh <ctl node> 'iptables -A OUTPUT -p tcp --dport 5673 -j DROP'
+Debug why we can't create a network
+
+4. on Ceph-mon nodes run
+"sed -i '10imon_data_avail_crit = 25' /etc/ceph/ceph.conf; stop ceph-mon-all; fallocate -l $((10+i-4))G /var/lib/ceph/mon/deleteme; start ceph-mon-all"; done
+
+debug problem with Ceph
+
+5. github manipulation
+Check out system-reclass model, then cherry pick update to 2018.4.0 from future release, then upgrade model to latest release.
+
+git cherry-pick --strategy=recursive -X theirs 373ecfe
+git rebase -Xtheirs 2018.11.0
+git rebase -Xtheirs 2019.2.0
+git status | sed -n 's/deleted by us://p' | xargs git rm
+git rebase --continue
+
+
+From shared web gui
+6. Create a new prometheus alert, or adjust existing alert, for example Elasticsearch Disk Warning
+
+e.g.
+ElasticsearchDiskWaterMarkMinor:
+  if: >-
+    (max(elasticsearch_fs_total_total_in_bytes) by (host, instance) - max(elasticsearch_fs_total_available_in_bytes) by (host, instance)) / max(elasticsearch_fs_total_total_in_bytes) by (host, instance) >= 0.85
+  annotations:
+    summary: "Elasticsearch uses 85% of disk space"
+ElasticsearchDiskWaterMarkMajor:
+  if: >-
+    (max(elasticsearch_fs_total_total_in_bytes) by (host, instance) - max(elasticsearch_fs_total_available_in_bytes) by (host, instance)) / max(elasticsearch_fs_total_total_in_bytes) by (host, instance) >= 0.9
+  annotations:
+    summary: "Elasticsearch uses 90% of disk space"
+
+7. Demonstrate some Kibana searches
